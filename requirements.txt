@@ -1,0 +1,2 @@
+sopel>=6.0,<7
+discord.py>=0.16
