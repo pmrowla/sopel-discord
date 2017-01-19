@@ -42,8 +42,16 @@ async def on_message(message):
             and re.match(r'^(?![.!?]).*$', content):
         irc_channel = client.channel_mappings[message.channel.id]
         content = re.sub(r'<(:\w+:)\d+>', r'\1', content)
-        irc_message = '<{}> {}'.format(message.author.name, content)
-        client.irc_bot.msg(irc_channel, irc_message)
+        if message.attachments:
+            extra = []
+            if content:
+                extra.append(content)
+            for attachment in message.attachments:
+                extra.append(attachment.get('url'))
+            content = ' '.join(extra)
+        if content:
+            irc_message = '<{}> {}'.format(message.author.name, content)
+            client.irc_bot.msg(irc_channel, irc_message)
 
 
 class DictAttribute(BaseValidated):
