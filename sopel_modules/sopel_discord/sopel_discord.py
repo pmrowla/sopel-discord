@@ -50,8 +50,16 @@ async def on_message(message):
                 extra.append(attachment.get('url'))
             content = ' '.join(extra)
         if content:
-            irc_message = '<{}> {}'.format(message.author.name, content)
-            client.irc_bot.msg(irc_channel, irc_message)
+            if re.match(r'^_.+_$', content) and not message.attachments:
+                # Discord uses markdown italics to denote /me action messages
+                irc_message = '{} {}'.format(
+                    message.author.name,
+                    content[1:-1]
+                )
+                client.irc_bot.action(irc_message, irc_channel)
+            else:
+                irc_message = '<{}> {}'.format(message.author.name, content)
+                client.irc_bot.msg(irc_channel, irc_message)
 
 
 class DictAttribute(BaseValidated):
@@ -179,8 +187,11 @@ def irc_message(bot, trigger):
                 'Authorization': 'Bot {}'.format(
                     bot.config.discord.discord_token)
             }
+            content = trigger.match.string
+            if trigger.tags.get('intent') == 'ACTION':
+                content = '_{}_'.format(content)
             payload = {
-                'content': trigger.match.string,
+                'content': content,
                 'username': '{} (IRC)'.format(trigger.nick),
             }
             try:
