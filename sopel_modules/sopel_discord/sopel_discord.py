@@ -36,11 +36,13 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+    content = message.clean_content
     if message.channel.id in client.channel_mappings \
             and not message.author.bot \
-            and re.match(r'^(?![.!?]).*$', message.content):
+            and re.match(r'^(?![.!?]).*$', content):
         irc_channel = client.channel_mappings[message.channel.id]
-        irc_message = '<{}> {}'.format(message.author.name, message.content)
+        content = re.sub(r'<(:\w+:)\d+>', r'\1', content)
+        irc_message = '<{}> {}'.format(message.author.name, content)
         client.irc_bot.msg(irc_channel, irc_message)
 
 
