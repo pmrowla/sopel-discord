@@ -38,7 +38,7 @@ async def on_ready():
 async def on_message(message):
     if message.channel.id in client.channel_mappings \
             and not message.author.bot \
-            and re.match(r'^(?![.!?].*$', message.content):
+            and re.match(r'^(?![.!?]).*$', message.content):
         irc_channel = client.channel_mappings[message.channel.id]
         irc_message = '<{}> {}'.format(message.author.name, message.content)
         client.irc_bot.msg(irc_channel, irc_message)
