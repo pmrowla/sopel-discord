@@ -26,6 +26,9 @@ discord_api_url = 'https://discordapp.com/api'
 client = discord.Client()
 
 
+valid_message_pattern = r'^(?![.!?]\s*\w+)'
+
+
 @client.event
 async def on_ready():
     print('Logged into Discord as')
@@ -39,7 +42,7 @@ async def on_message(message):
     content = message.clean_content
     if message.channel.id in client.channel_mappings \
             and not message.author.bot \
-            and re.match(r'^(?![.!?]).*$', content):
+            and re.match(valid_message_pattern, content):
         irc_channel = client.channel_mappings[message.channel.id]
         content = re.sub(r'<(:\w+:)\d+>', r'\1', content)
         if message.attachments:
@@ -176,7 +179,7 @@ def setup(bot):
 # Match all messages except for those which start with common bot command
 # prefixes
 @module.require_chanmsg
-@module.rule(r'^(?![.!?]).*$')
+@module.rule(valid_message_pattern)
 def irc_message(bot, trigger):
     if not trigger.is_privmsg \
             and trigger.sender in bot.memory['channel_mappings']:
