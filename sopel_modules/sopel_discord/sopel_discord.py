@@ -7,6 +7,7 @@ from __future__ import (
     print_function
 )
 
+import asyncio
 import threading
 import re
 
@@ -171,9 +172,12 @@ def setup(bot):
         v: k for k, v in client.channel_mappings.items()
     }
     _setup_webhooks(bot)
-    targs = (bot.config.discord.discord_token,)
-    t = threading.Thread(target=client.run, args=targs)
-    t.start()
+    # only start the asyncio thread once (the discord thread can survive sopel
+    # restarts)
+    if not asyncio.get_event_loop().is_running():
+        targs = (bot.config.discord.discord_token,)
+        t = threading.Thread(target=client.run, args=targs)
+        t.start()
 
 
 # Match all messages except for those which start with common bot command
