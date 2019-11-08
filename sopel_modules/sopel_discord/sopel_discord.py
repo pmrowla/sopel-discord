@@ -53,6 +53,7 @@ async def on_message(message):
             for attachment in message.attachments:
                 extra.append(attachment.get('url'))
             content = ' '.join(extra)
+        content = content.replace('\n', ' ').strip()
         if content:
             if re.match(r'^_.+_$', content) and not message.attachments:
                 # Discord uses markdown italics to denote /me action messages
