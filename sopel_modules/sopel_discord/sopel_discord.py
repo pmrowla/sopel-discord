@@ -30,6 +30,11 @@ client = discord.Client()
 valid_message_pattern = r'^(?![.!?]\s*\w+)'
 
 
+async def start(token):
+    print('Starting discord.py client')
+    await client.start(token)
+
+
 @client.event
 async def on_ready():
     print('Logged into Discord as')
@@ -163,6 +168,10 @@ def configure(config):
     )
 
 
+def discord_run(loop):
+    loop.run_forever()
+
+
 def setup(bot):
     bot.config.define_section('discord', DiscordSection)
     client.irc_bot = bot
@@ -175,9 +184,11 @@ def setup(bot):
     _setup_webhooks(bot)
     # only start the asyncio thread once (the discord thread can survive sopel
     # restarts)
-    if not asyncio.get_event_loop().is_running():
-        targs = (bot.config.discord.discord_token,)
-        t = threading.Thread(target=client.run, args=targs)
+    loop = asyncio.get_event_loop()
+    if not loop.is_running():
+        loop.create_task(start(bot.config.discord_token))
+        targs = (loop,)
+        t = threading.Thread(target=discord_run, args=targs)
         t.start()
 
 
@@ -210,5 +221,5 @@ def irc_message(bot, trigger):
                     json=payload,
                 )
                 r.raise_for_status()
-            except HTTPError as e:
+            except HTTPError:
                 pass
