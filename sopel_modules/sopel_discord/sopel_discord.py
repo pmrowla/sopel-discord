@@ -23,7 +23,9 @@ import requests
 from requests.exceptions import HTTPError
 
 
-discord_api_url = 'https://discordapp.com/api'
+DISCORD_API_VERSION = 6
+DISCORD_API_URL = f'https://discord.com/api/v{DISCORD_API_VERSION}'
+
 client = discord.Client()
 
 
@@ -64,7 +66,7 @@ async def on_message(message):
                 client.irc_bot.action(irc_message, irc_channel)
             else:
                 irc_message = '<{}> {}'.format(message.author.name, content)
-                client.irc_bot.msg(irc_channel, irc_message)
+                client.irc_bot.say(irc_message, irc_channel)
 
 
 class DictAttribute(BaseValidated):
@@ -121,7 +123,7 @@ def _setup_webhooks(bot):
     for k, channel_id in bot.memory['channel_mappings'].items():
         try:
             r = requests.get(
-                '{}/channels/{}/webhooks'.format(discord_api_url, channel_id),
+                '{}/channels/{}/webhooks'.format(DISCORD_API_URL, channel_id),
                 headers=headers
             )
             bot.memory['webhooks'][channel_id] = {}
@@ -133,7 +135,7 @@ def _setup_webhooks(bot):
                 payload = {'name': 'discord-irc'}
                 r = requests.post(
                     '{}/channels/{}/webhooks'.format(
-                        discord_api_url,
+                        DISCORD_API_URL,
                         channel_id
                     ),
                     headers=headers,
@@ -157,16 +159,22 @@ def configure(config):
     )
     config.discord.configure_setting(
         'channel_mappings',
-        ('Comma-separated list of Discord channel to IRC channel mappings'
-         ' (ex: #discord-channel1: #irc-channel1,'
-         ' #discord-channel2: #irc-channel2)')
+        ('Comma-separated list of Discord channel ID to IRC channel mappings'
+         ' (ex: 1234: #irc-channel1,'
+         ' 5678: #irc-channel2)')
     )
+
+
+def run_discord(loop):
+    loop.run_forever()
 
 
 def setup(bot):
     bot.config.define_section('discord', DiscordSection)
     client.irc_bot = bot
-    client.channel_mappings = bot.config.discord.channel_mappings
+    client.channel_mappings = {
+        int(k): v for k, v in bot.config.discord.channel_mappings.items()
+    }
     print(client.channel_mappings)
     # config order maps discord: IRC, invert the map for the IRC bot
     bot.memory['channel_mappings'] = {
@@ -175,9 +183,10 @@ def setup(bot):
     _setup_webhooks(bot)
     # only start the asyncio thread once (the discord thread can survive sopel
     # restarts)
-    if not asyncio.get_event_loop().is_running():
-        targs = (bot.config.discord.discord_token,)
-        t = threading.Thread(target=client.run, args=targs)
+    loop = asyncio.get_event_loop()
+    if not loop.is_running():
+        loop.create_task(client.start(bot.config.discord.discord_token))
+        t = threading.Thread(target=run_discord, args=(loop,))
         t.start()
 
 
@@ -204,7 +213,7 @@ def irc_message(bot, trigger):
             }
             try:
                 r = requests.post('{}/webhooks/{}/{}'.format(
-                        discord_api_url, hook['id'], hook['token']
+                        DISCORD_API_URL, hook['id'], hook['token']
                     ),
                     headers=headers,
                     json=payload,
