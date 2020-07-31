@@ -53,7 +53,7 @@ async def on_message(message):
             if content:
                 extra.append(content)
             for attachment in message.attachments:
-                extra.append(attachment.get('url'))
+                extra.append(attachment.url)
             content = ' '.join(extra)
         content = content.replace('\n', ' ').strip()
         if content:
